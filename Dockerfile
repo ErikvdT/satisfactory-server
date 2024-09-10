@@ -1,10 +1,9 @@
-FROM steamcmd/steamcmd:ubuntu-18
+FROM steamcmd/steamcmd:alpine-3
 
 # hadolint ignore=DL3008
 RUN set -x \
- && apt-get update \
- && DEBIAN_FRONTEND=noninteractive apt-get install -y gosu xdg-user-dirs --no-install-recommends\
- && rm -rf /var/lib/apt/lists/* \
+ && apk update \
+ && akp add gosu xdg-user-dirs --no-interactive --no-cache\
  && useradd -ms /bin/bash steam \
  && gosu nobody true
 
