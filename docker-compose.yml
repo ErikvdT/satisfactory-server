@@ -12,7 +12,7 @@ services:
       - MAXPLAYERS=16
       - PGID=1000
       - PUID=1000
-      - ROOTLESS=false
+      - ROOTLESS=true
       - STEAMBETA=false
     restart: unless-stopped
     deploy:
