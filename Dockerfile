@@ -1,11 +1,11 @@
 FROM steamcmd/steamcmd:alpine-3
 
 # hadolint ignore=DL3008
-RUN set -x \
- && apk update \
- && akp add gosu xdg-user-dirs --no-interactive --no-cache\
- && useradd -ms /bin/bash steam \
- && gosu nobody true
+RUN set -x
+RUN apk update
+RUN apk add gosu xdg-user-dirs --no-interactive --no-cache
+RUN useradd -ms /bin/bash steam
+RUN gosu nobody true
 
 RUN mkdir -p /config \
  && chown steam:steam /config
