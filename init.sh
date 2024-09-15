@@ -91,7 +91,7 @@ mkdir -p \
 
 if [[ "${ROOTLESS,,}" != "true" ]]; then
   chown -R "$PUID":"$PGID" /config /home/steam /tmp/dumps
-  exec gosu "$USER" "/home/steam/run.sh" "$@"
+  exec su "$USER" -c "/home/steam/run.sh" "$@"
 else
   exec "/home/steam/run.sh" "$@"
 fi
