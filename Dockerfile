@@ -3,9 +3,8 @@ FROM steamcmd/steamcmd:alpine-3
 # hadolint ignore=DL3008
 RUN set -x
 RUN apk update
-RUN apk add gosu xdg-user-dirs --no-interactive --no-cache
-RUN useradd -ms /bin/bash steam
-RUN gosu nobody true
+RUN apk add xdg-user-dirs --no-interactive --no-cache
+RUN adduser -Ds /bin/bash steam
 
 RUN mkdir -p /config \
  && chown steam:steam /config
