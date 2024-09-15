@@ -2,6 +2,8 @@
 
 set -e
 
+printf "===== Satisfactory Server %s =====\\nhttps://github.com/wolveix/satisfactory-server\\n\\n" "$VERSION"
+
 CURRENTUID=$(id -u)
 HOME="/home/steam"
 MSGERROR="\033[0;31mERROR:\033[0m"
@@ -17,24 +19,38 @@ if [[ "${DEBUG,,}" == "true" ]]; then
     echo "
 System info:
 OS:  $(uname -a)
-CPU: $(lscpu | grep 'Model name:' | sed 's/Model name:[[:space:]]*//g')
+CPU: $(lscpu | grep '^Model name:' | sed 's/Model name:[[:space:]]*//g')
 RAM: $(awk '/MemAvailable/ {printf( "%d\n", $2 / 1024000 )}' /proc/meminfo)GB/$(awk '/MemTotal/ {printf( "%d\n", $2 / 1024000 )}' /proc/meminfo)GB
 HDD: $(df -h | awk '$NF=="/"{printf "%dGB/%dGB (%s used)\n", $3,$2,$5}')"
+    printf "\\nCurrent version:\\n%s" "${VERSION}"
     printf "\\nCurrent user:\\n%s" "$(id)"
     printf "\\nProposed user:\\nuid=%s(?) gid=%s(?) groups=%s(?)\\n" "$PUID" "$PGID" "$PGID"
     printf "\\nExiting...\\n"
     exit 1
 fi
 
-# check that the cpu isn't generic, as Satisfactory will crash
-if [[ $(lscpu | grep 'Model name:' | sed 's/Model name:[[:space:]]*//g') = "Common KVM processor" ]]; then
-    printf "${MSGERROR} Your CPU model is configured as \"Common KVM processor\", which will cause Satisfactory to crash.\\nIf you have control over your hypervisor (ESXi, Proxmox, etc.), you should be able to easily change this.\\nOtherwise contact your host/administrator for assistance.\\n"
-    exit 1
+# check that the cpu isn't generic, as Satisfactory will normally crash
+if [[ "$VMOVERRIDE" == "true" ]]; then
+    printf "${MSGWARNING} VMOVERRIDE is enabled, skipping CPU model check. Satisfactory might crash!\\n"
+else
+    cpu_model=$(lscpu | grep 'Model name:' | sed 's/Model name:[[:space:]]*//g')
+    if [[ "$cpu_model" == "Common KVM processor" || "$cpu_model" == *"QEMU"* ]]; then
+        printf "${MSGERROR} Your CPU model is configured as \"${cpu_model}\", which will cause Satisfactory to crash.\\nIf you have control over your hypervisor (ESXi, Proxmox, etc.), you should be able to easily change this.\\nOtherwise contact your host/administrator for assistance.\\n"
+        exit 1
+    fi
 fi
 
-printf "Checking available memory...%sGB detected\\n" "$RAMAVAILABLE"
+printf "Checking available memory: %sGB detected\\n" "$RAMAVAILABLE"
 if [[ "$RAMAVAILABLE" -lt 12 ]]; then
     printf "${MSGWARNING} You have less than the required 12GB minmum (%sGB detected) of available RAM to run the game server.\\nIt is likely that the server will fail to load properly.\\n" "$RAMAVAILABLE"
+fi
+
+# prevent large logs from accumulating by default
+if [[ "${LOG,,}" != "true" ]]; then
+    printf "Clearing old Satisfactory logs (set LOG=true to disable this)\\n"
+    if [ -d "/config/gamefiles/FactoryGame/Saved/Logs" ] && [ -n "$(find /config/gamefiles/FactoryGame/Saved/Logs -type f -print -quit)" ]; then
+        rm -r /config/gamefiles/FactoryGame/Saved/Logs/*
+    fi
 fi
 
 # check if the user and group IDs have been set
@@ -81,13 +97,17 @@ fi
 mkdir -p \
     /config/backups \
     /config/gamefiles \
-    /config/overrides \
+    /config/logs/steam \
     /config/saved/blueprints \
     /config/saved/server \
     "${GAMECONFIGDIR}/Config/LinuxServer" \
     "${GAMECONFIGDIR}/Logs" \
     "${GAMESAVESDIR}/server" \
+    /home/steam/.steam/root \
+    /home/steam/.steam/steam \
     || exit 1
+
+echo "Satisfactory logs can be found in /config/gamefiles/FactoryGame/Saved/Logs" > /config/logs/satisfactory-path.txt
 
 if [[ "${ROOTLESS,,}" != "true" ]]; then
   chown -R "$PUID":"$PGID" /config /home/steam /tmp/dumps
